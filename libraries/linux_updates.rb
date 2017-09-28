@@ -86,7 +86,7 @@ EOH
   def updates
     ubuntu_updates = ubuntu_base + <<-EOH
 echo -n '{"available":['
-DEBIAN_FRONTEND=noninteractive apt-get upgrade --dry-run | grep Inst | tr -d '[]()' |\\
+DEBIAN_FRONTEND=noninteractive apt-get upgrade --dry-run | grep Inst | grep -i securi | tr -d '[]()' |\\
   awk '{ printf "{\\"name\\":\\""$2"\\",\\"version\\":\\""$4"\\",\\"repo\\":\\""$5"\\",\\"arch\\":\\""$6"\\"}," }' | rev | cut -c 2- | rev | tr -d '\\n'
 echo -n ']}'
 EOH
