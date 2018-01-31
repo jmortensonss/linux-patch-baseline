@@ -13,10 +13,21 @@ class LinuxUpdateManager < Inspec.resource(1)
   name 'linux_update'
   desc 'Use the linux_update InSpec audit resource to test for available or installed updates'
 
+  # def initialize
+  #   if inspec.os.redhat?
+  #     @update_mgmt = RHELUpdateFetcher.new(inspec)
+  #   elsif inspec.os.debian?
+  #     @update_mgmt = UbuntuUpdateFetcher.new(inspec)
+  #   end
+  #   return skip_resource 'The `linux_update` resource is not supported on your OS.' if @update_mgmt.nil?
+  # end
+
+  # Since Amazon Linux is based on RedHat, they may use the same method.
   def initialize
-    if inspec.os.redhat?
+    case inspec.os[:family]
+    when 'redhat', 'amazon'
       @update_mgmt = RHELUpdateFetcher.new(inspec)
-    elsif inspec.os.debian?
+    when 'debian'
       @update_mgmt = UbuntuUpdateFetcher.new(inspec)
     end
     return skip_resource 'The `linux_update` resource is not supported on your OS.' if @update_mgmt.nil?
@@ -124,7 +135,6 @@ EOH
 #!/bin/sh
 python -c 'import sys; sys.path.insert(0, "/usr/share/yum-cli"); import cli; list = cli.YumBaseCli().returnPkgLists(["updates"]);res = ["{\\"name\\":\\""+x.name+"\\", \\"version\\":\\""+x.version+"-"+x.release+"\\",\\"arch\\":\\""+x.arch+"\\",\\"repository\\":\\""+x.repo.id+"\\"}" for x in list.updates]; print "{\\"available\\":["+",".join(res)+"]}"'
 EOH
-    puts rhel_updates
     cmd = @inspec.bash(rhel_updates)
     unless cmd.exit_status == 0
       # essentially we want https://github.com/chef/inspec/issues/1205
