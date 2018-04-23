@@ -29,7 +29,11 @@ class LinuxUpdateManager < Inspec.resource(1)
     when 'redhat', 'amazon'
       @update_mgmt = RHELUpdateFetcher.new(inspec)
     when 'debian'
-      @update_mgmt = UbuntuUpdateFetcher.new(inspec)
+      if inspec.os[:release] == "14.04"
+        @update_mgmt = UbuntuUpdateFetcher.new(inspec)
+      else
+        @update_mgmt = UbuntuUpdateFetcher.new(inspec)
+      end
     when 'suse'
       @update_mgmt = SuseUpdateFetcher.new(inspec)
     end
@@ -217,3 +221,16 @@ PRINT_JSON
     end
   end
 end
+
+
+class Ubuntu14UpdateFetcher < UbuntuUpdateFetcher
+  def updates
+    ubuntu_updates = ubuntu_base + <<-PRINT_JSON
+echo -n '{"available":['
+grep security /etc/apt/sources.list > /tmp/security.list
+DEBIAN_FRONTEND=noninteractive apt-get upgrade -oDir::Etc::Sourcelist=/tmp/security.list -s | grep Inst | tr -d '[]()' |\\
+  awk '{ printf "{\\"name\\":\\""$2"\\",\\"version\\":\\""$4"\\",\\"repo\\":\\""$5"\\",\\"arch\\":\\""$6"\\"}," }' | rev | cut -c 2- | rev | tr -d '\\n'
+echo -n ']}'
+PRINT_JSON
+    parse_json(ubuntu_updates)
+  end
