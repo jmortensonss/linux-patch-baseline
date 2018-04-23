@@ -9,6 +9,7 @@
 
 require 'json'
 require 'rexml/document'
+# require 'logger'
 
 class LinuxUpdateManager < Inspec.resource(1)
   name 'linux_update'
@@ -25,13 +26,19 @@ class LinuxUpdateManager < Inspec.resource(1)
 
   # Since Amazon Linux is based on RedHat, they may use the same method.
   def initialize
+    # logger = Logger.new(STDOUT)
+    # logger.level = Logger::WARN
+
     case inspec.os[:family]
     when 'redhat', 'amazon'
       @update_mgmt = RHELUpdateFetcher.new(inspec)
     when 'debian'
-      if inspec.os[:release] == "14.04"
+      case inspec.os[:release]
+      when '14.04'
+        #logger.warn("14.04")
         @update_mgmt = Ubuntu14UpdateFetcher.new(inspec)
-      else
+      when '16.04', '17.04'
+        #logger.warn("16.04 or 17.04")
         @update_mgmt = UbuntuUpdateFetcher.new(inspec)
       end
     when 'suse'
@@ -93,7 +100,8 @@ class UpdateFetcher
   def parse_json(script)
     cmd = @inspec.bash(script)
     begin
-      JSON.parse(cmd.stdout)
+      result = JSON.parse(cmd.stdout)
+      return result
     rescue JSON::ParserError => _e
       return []
     end
@@ -226,9 +234,9 @@ end
 class Ubuntu14UpdateFetcher < UbuntuUpdateFetcher
   def updates
     ubuntu_updates = ubuntu_base + <<-PRINT_JSON
-echo -n '{"available":['
 grep security /etc/apt/sources.list > /tmp/security.list
-DEBIAN_FRONTEND=noninteractive apt-get upgrade -oDir::Etc::Sourcelist=/tmp/security.list -s | grep Inst | tr -d '[]()' |\\
+echo -n '{"available":['
+apt-get upgrade -oDir::Etc::Sourcelist=/tmp/security.list -s | grep Inst | tr -d '[]()' |\\
   awk '{ printf "{\\"name\\":\\""$2"\\",\\"version\\":\\""$4"\\",\\"repo\\":\\""$5"\\",\\"arch\\":\\""$6"\\"}," }' | rev | cut -c 2- | rev | tr -d '\\n'
 echo -n ']}'
 PRINT_JSON
