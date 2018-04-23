@@ -234,3 +234,4 @@ echo -n ']}'
 PRINT_JSON
     parse_json(ubuntu_updates)
   end
+end
