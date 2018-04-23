@@ -30,7 +30,7 @@ class LinuxUpdateManager < Inspec.resource(1)
       @update_mgmt = RHELUpdateFetcher.new(inspec)
     when 'debian'
       if inspec.os[:release] == "14.04"
-        @update_mgmt = UbuntuUpdateFetcher.new(inspec)
+        @update_mgmt = Ubuntu14UpdateFetcher.new(inspec)
       else
         @update_mgmt = UbuntuUpdateFetcher.new(inspec)
       end
